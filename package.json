@@ -1,0 +1,24 @@
+{
+  "name": "tiho-indicators",
+  "version": "1.0.0",
+  "description": "Financial indicator calculator",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tculig/tiho-indicators.git"
+  },
+  "keywords": [
+    "financial",
+    "indicators",
+    "tiho"
+  ],
+  "author": "Tihomir Culig",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tculig/tiho-indicators/issues"
+  },
+  "homepage": "https://github.com/tculig/tiho-indicators#readme"
+}
