@@ -1,7 +1,3 @@
-//index.js
+const RaydiumSwap = require('./src/index.ts')
 
-function helloNpm() {
-    return "hello NPM"
-  }
-  
-  module.exports = helloNpm
+module.exports = RaydiumSwap
