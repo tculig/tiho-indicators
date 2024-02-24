@@ -33,7 +33,7 @@ const swap = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercenta
   const tx = await raydiumSwap.getSwapTransaction(
     tokenBAddress,
     tokenAAmount,
-    poolInfo!,
+    poolInfo,
     1000000, // Max amount of lamports
     useVersionedTransaction,
     'in',
