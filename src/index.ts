@@ -3,11 +3,11 @@ const solweb3 = require('@solana/web3.js')
 
 const sol = 'So11111111111111111111111111111111111111112' // e.g. SOLANA mint address
 const raydiumBuy = async (tokenAddress, amount, slippagePercentage) =>{
-  await swap(sol,tokenAddress, amount, slippagePercentage);
+  return swap(sol,tokenAddress, amount, slippagePercentage);
 }
 
 const raydiumSell = async (tokenAddress, amount, slippagePercentage) =>{
-  await swap(tokenAddress, sol, amount, slippagePercentage);
+  return swap(tokenAddress, sol, amount, slippagePercentage);
 }
 let RPC_URL, WALLET_PRIVATE_KEY;
 const initialize = (rpc, wallet)=>{
@@ -29,12 +29,12 @@ const swap = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercenta
   // Trying to find pool info in the json we loaded earlier and by comparing baseMint and tokenBAddress
   const poolInfo = raydiumSwap.findPoolInfoForTokens(tokenAAddress, tokenBAddress)
   console.log('Found pool info')
-
+  if(poolInfo==undefined) return;
   const tx = await raydiumSwap.getSwapTransaction(
     tokenBAddress,
     tokenAAmount,
     poolInfo,
-    1000000, // Max amount of lamports
+    10000000, // Max amount of lamports
     useVersionedTransaction,
     'in',
     slippagePercentage
@@ -46,6 +46,7 @@ const swap = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercenta
       : await raydiumSwap.sendLegacyTransaction(tx as typeof solweb3.Transaction)
 
     console.log (`https://solscan.io/tx/${txid}`)
+    return txid;
   } else {
     const simRes = useVersionedTransaction
       ? await raydiumSwap.simulateVersionedTransaction(tx as typeof solweb3.VersionedTransaction)
@@ -55,8 +56,16 @@ const swap = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercenta
   }
 }
 
+const getConfirmation = async(signature) =>{
+  const raydiumSwap = new RaydiumSwapClass(RPC_URL, WALLET_PRIVATE_KEY)
+  return raydiumSwap.getConfirmation(signature);
+}
+
+
+
 module.exports = {
   initialize,
   raydiumBuy, 
-  raydiumSell
+  raydiumSell,
+  getConfirmation
 }

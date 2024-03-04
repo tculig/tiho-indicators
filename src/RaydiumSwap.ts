@@ -196,6 +196,13 @@ class RaydiumSwap {
       fee,
     }
   }
+
+  async getConfirmation ( tx: string) {
+    const result = await this.connection.getSignatureStatus(tx, {
+      searchTransactionHistory: true,
+    });
+    return result.value?.confirmationStatus;
+  };
 }
 
 
