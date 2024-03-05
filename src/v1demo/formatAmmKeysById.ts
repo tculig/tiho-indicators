@@ -1,31 +1,23 @@
-import {
-  ApiPoolInfoV4,
-  LIQUIDITY_STATE_LAYOUT_V4,
-  Liquidity,
-  MARKET_STATE_LAYOUT_V3,
-  Market,
-  SPL_MINT_LAYOUT
-} from '@raydium-io/raydium-sdk';
-import {
-  PublicKey
-} from '@solana/web3.js';
+const { Liquidity: LLQDT } = require("@raydium-io/raydium-sdk");
 
-import { connection } from './config';
+const { ApiPoolInfoV4, LIQUIDITY_STATE_LAYOUT_V4, MARKET_STATE_LAYOUT_V3, Market, SPL_MINT_LAYOUT } = require('@raydium-io/raydium-sdk');
+//const {PublicKey} = require ('@solana/web3.js');
+const solweb32 = require('@solana/web3.js')
 
-export async function formatAmmKeysById(id: string): Promise<ApiPoolInfoV4> {
-  const account = await connection.getAccountInfo(new PublicKey(id))
-  if (account === null) throw Error(' get id info error ')
-  const info = LIQUIDITY_STATE_LAYOUT_V4.decode(account.data)
+exports.formatAmmKeysById = async function(id:any, _connection: any) {
+  const account = await _connection.getAccountInfo(new solweb32.PublicKey(id));
+  if (account === null) throw new Error(' get id info error ');
+  const info = LIQUIDITY_STATE_LAYOUT_V4.decode(account.data);
 
-  const marketId = info.marketId
-  const marketAccount = await connection.getAccountInfo(marketId)
-  if (marketAccount === null) throw Error(' get market info error')
-  const marketInfo = MARKET_STATE_LAYOUT_V3.decode(marketAccount.data)
+  const marketId = info.marketId;
+  const marketAccount = await _connection.getAccountInfo(marketId);
+  if (marketAccount === null) throw new Error(' get market info error');
+  const marketInfo = MARKET_STATE_LAYOUT_V3.decode(marketAccount.data);
 
-  const lpMint = info.lpMint
-  const lpMintAccount = await connection.getAccountInfo(lpMint)
-  if (lpMintAccount === null) throw Error(' get lp mint info error')
-  const lpMintInfo = SPL_MINT_LAYOUT.decode(lpMintAccount.data)
+  const lpMint = info.lpMint;
+  const lpMintAccount = await _connection.getAccountInfo(lpMint);
+  if (lpMintAccount === null) throw new Error(' get lp mint info error');
+  const lpMintInfo = SPL_MINT_LAYOUT.decode(lpMintAccount.data);
 
   return {
     id,
@@ -37,7 +29,7 @@ export async function formatAmmKeysById(id: string): Promise<ApiPoolInfoV4> {
     lpDecimals: lpMintInfo.decimals,
     version: 4,
     programId: account.owner.toString(),
-    authority: Liquidity.getAssociatedAuthority({ programId: account.owner }).publicKey.toString(),
+    authority: LLQDT.getAssociatedAuthority({ programId: account.owner }).publicKey.toString(),
     openOrders: info.openOrders.toString(),
     targetOrders: info.targetOrders.toString(),
     baseVault: info.baseVault.toString(),
@@ -53,6 +45,6 @@ export async function formatAmmKeysById(id: string): Promise<ApiPoolInfoV4> {
     marketBids: marketInfo.bids.toString(),
     marketAsks: marketInfo.asks.toString(),
     marketEventQueue: marketInfo.eventQueue.toString(),
-    lookupTableAccount: PublicKey.default.toString()
-  }
-}
+    lookupTableAccount: solweb32.PublicKey.default.toString()
+  };
+};

@@ -1,55 +1,26 @@
-import assert from 'assert';
+const ray = require("@raydium-io/raydium-sdk");
+const { Liquidity : _Liquidity} = require("@raydium-io/raydium-sdk");
+const assert = require('assert');
+const { formatAmmKeysById } = require('./formatAmmKeysById');
 
-import {
-  jsonInfo2PoolKeys,
-  Liquidity,
-  LiquidityPoolKeys,
-  Percent,
-  Token,
-  TokenAmount,
-} from '@raydium-io/raydium-sdk';
-import { Keypair } from '@solana/web3.js';
-
-import {
-  connection,
-  DEFAULT_TOKEN,
-  makeTxVersion,
-  wallet
-} from './config';
-import { formatAmmKeysById } from './formatAmmKeysById';
-import {
-  buildAndSendTx,
-  getWalletTokenAccount,
-} from './util';
-
-type WalletTokenAccounts = Awaited<ReturnType<typeof getWalletTokenAccount>>
-type TestTxInputInfo = {
-  outputToken: Token
-  targetPool: string
-  inputTokenAmount: TokenAmount
-  slippage: Percent
-  walletTokenAccounts: WalletTokenAccounts
-  wallet: Keypair
-}
-
-async function swapOnlyAmm(input: TestTxInputInfo) {
+async function swapOnlyAmm(input:any, _connection:any) {
   // -------- pre-action: get pool info --------
-  const targetPoolInfo = await formatAmmKeysById(input.targetPool)
-  assert(targetPoolInfo, 'cannot find the target pool')
-  const poolKeys = jsonInfo2PoolKeys(targetPoolInfo) as LiquidityPoolKeys
-
-  // -------- step 1: coumpute amount out --------
-  const { amountOut, minAmountOut } = Liquidity.computeAmountOut({
+//  const targetPoolInfo = await formatAmmKeysById(input.targetPool, _connection);
+ // assert(targetPoolInfo, 'cannot find the target pool');
+  const poolKeys = input.poolInfo;
+  console.log("1");
+  // -------- step 1: compute amount out --------
+  const { amountOut, minAmountOut } = await _Liquidity.computeAmountOut({
     poolKeys: poolKeys,
-    poolInfo: await Liquidity.fetchInfo({ connection, poolKeys }),
+    poolInfo: await _Liquidity.fetchInfo({ connection: _connection, poolKeys }),
     amountIn: input.inputTokenAmount,
     currencyOut: input.outputToken,
     slippage: input.slippage,
-  })
-
+  });
+  console.log("11");
   // -------- step 2: create instructions by SDK function --------
-  const { innerTransactions } = await Liquidity.makeSwapInstructionSimple({
-    connection,
+  const { innerTransactions } = await _Liquidity.makeSwapInstructionSimple({
+    connection: _connection,
     poolKeys,
     userKeys: {
       tokenAccounts: input.walletTokenAccounts,
@@ -58,21 +29,21 @@ async function swapOnlyAmm(input: TestTxInputInfo) {
     amountIn: input.inputTokenAmount,
     amountOut: minAmountOut,
     fixedSide: 'in',
-    makeTxVersion,
-  })
+    makeTxVersion: 1,
+  });
+  console.log("111");
+  console.log('amountOut:', amountOut.toFixed(), '  minAmountOut: ', minAmountOut.toFixed());
 
-  console.log('amountOut:', amountOut.toFixed(), '  minAmountOut: ', minAmountOut.toFixed())
-
-  return { txids: await buildAndSendTx(innerTransactions) }
+  return { txids: await buildAndSendTx(innerTransactions) };
 }
-
+/*
 async function howToUse() {
-  const inputToken = DEFAULT_TOKEN.USDC // USDC
-  const outputToken = DEFAULT_TOKEN.RAY // RAY
-  const targetPool = 'EVzLJhqMtdC1nPmz8rNd6xGfVjDPxpLZgq7XJuNfMZ6' // USDC-RAY pool
-  const inputTokenAmount = new TokenAmount(inputToken, 10000)
-  const slippage = new Percent(1, 100)
-  const walletTokenAccounts = await getWalletTokenAccount(connection, wallet.publicKey)
+  const inputToken = DEFAULT_TOKEN.USDC; // USDC
+  const outputToken = DEFAULT_TOKEN.RAY; // RAY
+  const targetPool = 'EVzLJhqMtdC1nPmz8rNd6xGfVjDPxpLZgq7XJuNfMZ6'; // USDC-RAY pool
+  const inputTokenAmount = new TokenAmount(inputToken, 10000);
+  const slippage = new Percent(1, 100);
+  const walletTokenAccounts = await getWalletTokenAccount(connection, wallet.publicKey);
 
   swapOnlyAmm({
     outputToken,
@@ -80,9 +51,10 @@ async function howToUse() {
     inputTokenAmount,
     slippage,
     walletTokenAccounts,
-    wallet: wallet,
+    wallet,
   }).then(({ txids }) => {
-    /** continue with txids */
-    console.log('txids', txids)
-  })
+    console.log('txids', txids);
+  });
 }
+*/
+module.exports = { swapOnlyAmm };

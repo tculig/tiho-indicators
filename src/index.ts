@@ -34,19 +34,19 @@ const swap = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercenta
     tokenBAddress,
     tokenAAmount,
     poolInfo,
-    10000000, // Max amount of lamports
+    1000000, // Max amount of lamports
     useVersionedTransaction,
     'in',
     slippagePercentage
   )
 
   if (executeSwap) {
-    const txid = useVersionedTransaction
+    const result = useVersionedTransaction
       ? await raydiumSwap.sendVersionedTransaction(tx as typeof solweb3.VersionedTransaction)
       : await raydiumSwap.sendLegacyTransaction(tx as typeof solweb3.Transaction)
 
-    console.log (`https://solscan.io/tx/${txid}`)
-    return txid;
+    console.log (result)
+    return result;
   } else {
     const simRes = useVersionedTransaction
       ? await raydiumSwap.simulateVersionedTransaction(tx as typeof solweb3.VersionedTransaction)

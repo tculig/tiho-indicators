@@ -12,15 +12,20 @@ const { Liquidity,
 const { Wallet } = require('@project-serum/anchor')
 const base58 = require('bs58')
 const nodeFetch = require('node-fetch');
-
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 class RaydiumSwap {
-  allPoolKeysJson: typeof LiquidityPoolJsonInfo[] =[]
+  allPoolKeysJson: typeof LiquidityPoolJsonInfo[] = []
   connection: typeof Connection
   wallet: typeof Wallet
-
+  START_TIME : any;
   constructor(RPC_URL: string, WALLET_PRIVATE_KEY: string) {
-    this.connection = new Connection(RPC_URL, { commitment: 'confirmed' })
+    this.connection = new Connection(RPC_URL, { commitment: 'confirmed', confirmTransactionInitialTimeout: 45 })
     this.wallet = new Wallet(Keypair.fromSecretKey(base58.decode(WALLET_PRIVATE_KEY)))
+    this.START_TIME = new Date();
   }
 
   async loadPoolKeys() {
@@ -126,13 +131,74 @@ class RaydiumSwap {
     return txid
   }
 
+  async isBlockhashExpired(lastValidBlockHeight: number) {
+    let currentBlockHeight = (await this.connection.getBlockHeight('finalized'));
+    console.log('                           ');
+    console.log('Current Block height:             ', currentBlockHeight);
+    console.log('Last Valid Block height - 150:     ', lastValidBlockHeight - 150);
+    console.log('--------------------------------------------');
+    console.log('Difference:                      ', currentBlockHeight - (lastValidBlockHeight - 150)); // If Difference is positive, blockhash has expired.
+    console.log('                           ');
+
+    return (currentBlockHeight > lastValidBlockHeight - 150);
+  }
+
+  async keepTrying(txId, lastValidHeight) {
+    // Step 4 - Check transaction status and blockhash status until the transaction succeeds or blockhash expires
+    let hashExpired = false;
+    let txSuccess = false;
+    while (!hashExpired && !txSuccess) {
+      const { value: status } = await this.connection.getSignatureStatus(txId);
+
+      // Break loop if transaction has succeeded
+      if (status && ((status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized'))) {
+        txSuccess = true;
+        const endTime = new Date();
+        const elapsed = (endTime.getTime() - this.START_TIME.getTime()) / 1000;
+        console.log(`Transaction Success. Elapsed time: ${elapsed} seconds.`);
+        console.log(`https://explorer.solana.com/tx/${txId}?cluster=devnet`);
+        break;
+      }
+
+      hashExpired = await this.isBlockhashExpired(lastValidHeight);
+
+      // Break loop if blockhash has expired
+      if (hashExpired) {
+        const endTime = new Date();
+        const elapsed = (endTime.getTime() - this.START_TIME.getTime()) / 1000;
+        console.log(`Blockhash has expired. Elapsed time: ${elapsed} seconds.`);
+        // (add your own logic to Fetch a new blockhash and resend the transaction or throw an error)
+        break;
+      }
+
+      // Check again after 2.5 sec
+      await sleep(2500);
+    }
+  }
+
   async sendVersionedTransaction(tx: typeof VersionedTransaction) {
+    console.log("SEDNING TX")
     const txid = await this.connection.sendTransaction(tx, {
       skipPreflight: true,
-      maxRetries: 2,
+      maxRetries: 5,
     })
+    console.log(`https://solscan.io/tx/${txid}`)
+    const recentBlockhashForSwap = await this.connection.getLatestBlockhash()
+    await this.isBlockhashExpired(recentBlockhashForSwap.lastValidBlockHeight)
+    const confirmStrategy = {
+      blockhash: recentBlockhashForSwap.blockhash,
+      lastValidBlockHeight: recentBlockhashForSwap.lastValidBlockHeight,
+      signature: txid
+    }
+    this.keepTrying(txid, recentBlockhashForSwap.lastValidBlockHeight)
+    const result = await this.connection.confirmTransaction(confirmStrategy, 'confirmed')
+    return result
+  }
 
-    return txid
+  async sendAndConfirm(tx: typeof VersionedTransaction) {
+    const txid = await this.connection.sendAndConfirmRawTransaction(this.connection, tx, {
+
+    })
   }
 
   async simulateLegacyTransaction(tx: typeof Transaction) {
@@ -197,7 +263,7 @@ class RaydiumSwap {
     }
   }
 
-  async getConfirmation ( tx: string) {
+  async getConfirmation(tx: string) {
     const result = await this.connection.getSignatureStatus(tx, {
       searchTransactionHistory: true,
     });
