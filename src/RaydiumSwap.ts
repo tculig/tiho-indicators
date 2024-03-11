@@ -190,10 +190,16 @@ class RaydiumSwap {
       lastValidBlockHeight: recentBlockhashForSwap.lastValidBlockHeight,
       signature: txid
     }
-    this.keepTrying(txid, recentBlockhashForSwap.lastValidBlockHeight)
+    await this.keepTrying(txid, recentBlockhashForSwap.lastValidBlockHeight)
+    try{
     const confirmed = await this.connection.confirmTransaction(confirmStrategy, 'confirmed')
-    console.log(confirmed)
-    return txid
+     console.log(confirmed)
+     return txid
+    }catch(ex){
+      console.log(ex);
+      return false;
+    }
+   
   }
 
   async sendAndConfirm(tx: typeof VersionedTransaction) {
