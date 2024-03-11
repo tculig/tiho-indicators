@@ -41,12 +41,10 @@ const swap = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercenta
   )
 
   if (executeSwap) {
-    const result = useVersionedTransaction
+    const txid = useVersionedTransaction
       ? await raydiumSwap.sendVersionedTransaction(tx as typeof solweb3.VersionedTransaction)
       : await raydiumSwap.sendLegacyTransaction(tx as typeof solweb3.Transaction)
-
-    console.log (result)
-    return result;
+     return txid;
   } else {
     const simRes = useVersionedTransaction
       ? await raydiumSwap.simulateVersionedTransaction(tx as typeof solweb3.VersionedTransaction)
