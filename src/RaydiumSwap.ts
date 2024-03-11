@@ -64,7 +64,7 @@ class RaydiumSwap {
     // fromToken: string,
     amount: number,
     poolKeys: typeof LiquidityPoolKeys,
-    maxLamports: number = 100000,
+    maxLamports: number = 110000,
     useVersionedTransaction = true,
     fixedSide: 'in' | 'out' = 'in',
     slippagePercentage: number = 5
