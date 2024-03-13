@@ -23,7 +23,7 @@ class RaydiumSwap {
   wallet: typeof Wallet
   START_TIME : any;
   constructor(RPC_URL: string, WALLET_PRIVATE_KEY: string) {
-    this.connection = new Connection(RPC_URL, { commitment: 'confirmed', confirmTransactionInitialTimeout: 45 })
+    this.connection = new Connection(RPC_URL, { commitment: 'confirmed', confirmTransactionInitialTimeout: 60 })
     this.wallet = new Wallet(Keypair.fromSecretKey(base58.decode(WALLET_PRIVATE_KEY)))
     this.START_TIME = new Date();
   }

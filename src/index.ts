@@ -1,5 +1,7 @@
 const RaydiumSwapClass = require('./RaydiumSwap.ts')
 const solweb3 = require('@solana/web3.js')
+import { ApiPoolInfoV4, MARKET_STATE_LAYOUT_V3, Market, SPL_MINT_LAYOUT } from "@raydium-io/raydium-sdk";
+import base58 from "bs58";
 
 const sol = 'So11111111111111111111111111111111111111112' // e.g. SOLANA mint address
 const raydiumBuy = async (tokenAddress, amount, slippagePercentage) =>{
@@ -22,24 +24,28 @@ const swap = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercenta
   const raydiumSwap = new RaydiumSwapClass(RPC_URL, WALLET_PRIVATE_KEY)
   console.log(`Raydium swap initialized`)
 
-  // Loading with pool keys from https://api.raydium.io/v2/sdk/liquidity/mainnet.json
-  await raydiumSwap.loadPoolKeys()
-  console.log(`Loaded pool keys`)
-
   // Trying to find pool info in the json we loaded earlier and by comparing baseMint and tokenBAddress
-  const poolInfo = raydiumSwap.findPoolInfoForTokens(tokenAAddress, tokenBAddress)
+  let poolInfo = raydiumSwap.findPoolInfoForTokens(tokenAAddress, tokenBAddress)
+  if(!poolInfo){
+      // Loading with pool keys from https://api.raydium.io/v2/sdk/liquidity/mainnet.json
+      await raydiumSwap.loadPoolKeys()
+      console.log(`Loaded pool keys`)
+  }
+  poolInfo = raydiumSwap.findPoolInfoForTokens(tokenAAddress, tokenBAddress)
   console.log('Found pool info')
   if(poolInfo==undefined) return;
-  const tx = await raydiumSwap.getSwapTransaction(
-    tokenBAddress,
-    tokenAAmount,
-    poolInfo,
-    1000000, // Max amount of lamports
-    useVersionedTransaction,
-    'in',
-    slippagePercentage
-  )
 
+  if(poolInfo){
+    const tx = await raydiumSwap.getSwapTransaction(
+      tokenBAddress,
+      tokenAAmount,
+      poolInfo,
+      1000000, // Max amount of lamports
+      useVersionedTransaction,
+      'in',
+      slippagePercentage
+    )
+    
   if (executeSwap) {
     const txid = useVersionedTransaction
       ? await raydiumSwap.sendVersionedTransaction(tx as typeof solweb3.VersionedTransaction)
@@ -52,11 +58,88 @@ const swap = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercenta
 
     console.log(simRes)
   }
+  }else{
+    console.log(poolInfo)
+  }
+
+
 }
 
 const getConfirmation = async(signature) =>{
   const raydiumSwap = new RaydiumSwapClass(RPC_URL, WALLET_PRIVATE_KEY)
   return raydiumSwap.getConfirmation(signature);
+}
+
+const connectionSolanaHTTPS = new Connection("https://solana-mainnet.core.chainstack.com/"+process.env.RPC_URL, { commitment: 'confirmed' })
+async function callback(data: any) {
+  console.log(data)
+  const programId = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
+  if (!data.filters.includes('transactionsSubKey')) return undefined
+
+  const info = data.transaction
+  if (info.transaction.meta.err !== undefined) return undefined
+
+  const formatData: {
+    slot: number, txid: string, poolInfos: ApiPoolInfoV4[]
+  } = {
+    slot: info.slot,
+    txid: base58.encode(info.transaction.signature),
+    poolInfos: []
+  }
+
+  const accounts = info.transaction.transaction.message.accountKeys.map((i: Buffer) => base58.encode(i))
+  for (const item of [...info.transaction.transaction.message.instructions, ...info.transaction.meta.innerInstructions.map((i: any) => i.instructions).flat()]) {
+    if (accounts[item.programIdIndex] !== programId) continue
+
+    if ([...(item.data as Buffer).values()][0] != 1) continue
+
+    const keyIndex = [...(item.accounts as Buffer).values()]
+
+    const [baseMintAccount, quoteMintAccount, marketAccount] = await connectionSolanaHTTPS.getMultipleAccountsInfo([
+      new solweb3.PublicKey(accounts[keyIndex[8]]),
+      new solweb3.PublicKey(accounts[keyIndex[9]]),
+      new solweb3.PublicKey(accounts[keyIndex[16]]),
+    ])
+
+    if (baseMintAccount === null || quoteMintAccount === null || marketAccount === null) throw Error('get account info error')
+
+    const baseMintInfo = SPL_MINT_LAYOUT.decode(baseMintAccount.data)
+    const quoteMintInfo = SPL_MINT_LAYOUT.decode(quoteMintAccount.data)
+    const marketInfo = MARKET_STATE_LAYOUT_V3.decode(marketAccount.data)
+
+    formatData.poolInfos.push({
+      id: accounts[keyIndex[4]],
+      baseMint: accounts[keyIndex[8]],
+      quoteMint: accounts[keyIndex[9]],
+      lpMint: accounts[keyIndex[7]],
+      baseDecimals: baseMintInfo.decimals,
+      quoteDecimals: quoteMintInfo.decimals,
+      lpDecimals: baseMintInfo.decimals,
+      version: 4,
+      programId: programId,
+      authority: accounts[keyIndex[5]],
+      openOrders: accounts[keyIndex[6]],
+      targetOrders: accounts[keyIndex[12]],
+      baseVault: accounts[keyIndex[10]],
+      quoteVault: accounts[keyIndex[11]],
+      withdrawQueue: solweb3.PublicKey.default.toString(),
+      lpVault: solweb3.PublicKey.default.toString(),
+      marketVersion: 3,
+      marketProgramId: marketAccount.owner.toString(),
+      marketId: accounts[keyIndex[16]],
+      marketAuthority: Market.getAssociatedAuthority({ programId: marketAccount.owner, marketId: new solweb3.PublicKey(accounts[keyIndex[16]]) }).publicKey.toString(),
+      marketBaseVault: marketInfo.baseVault.toString(),
+      marketQuoteVault: marketInfo.quoteVault.toString(),
+      marketBids: marketInfo.bids.toString(),
+      marketAsks: marketInfo.asks.toString(),
+      marketEventQueue: marketInfo.eventQueue.toString(),
+      lookupTableAccount: solweb3.PublicKey.default.toString()
+    })
+  }
+
+  console.log(formatData)
+
+  return formatData
 }
 
 
@@ -65,5 +148,6 @@ module.exports = {
   initialize,
   raydiumBuy, 
   raydiumSell,
-  getConfirmation
+  getConfirmation,
+  callback
 }
