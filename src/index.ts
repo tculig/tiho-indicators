@@ -74,29 +74,43 @@ const getConfirmation = async(signature) =>{
 }
 
 const connectionSolanaHTTPS = new solweb3.Connection(process.env.RPC_URL, { commitment: 'confirmed' })
+
 async function callback(data: any) {
   const programId = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
   //if (!data.filters.includes('transactionsSubKey')) return undefined
 
   const info = data;
-  if (info.meta.err !== undefined) return undefined
-
+  if (info.meta.err !== null) return undefined
+ 
   const formatData: {
     slot: number, txid: string, poolInfos: typeof _ApiPoolInfoV4[]
   } = {
     slot: info.slot,
-    txid: b58.encode(info.transaction.signatures[0]),
+    txid: info.transaction.signatures[0],
     poolInfos: []
   }
 
-  const accounts = info.transaction.message.staticAccountKeys.map((i: Buffer) => b58.encode(i))
-  for (const item of [...info.transaction.message.compiledInstructions, ...info.meta.innerInstructions.map((i: any) => i.instructions).flat()]) {
-    if (accounts[item.programIdIndex] !== programId) continue
+   var enc = new TextEncoder(); // always utf-8
+  // console.dir(data,{depth:null})
+  const accounts = info.transaction.message.staticAccountKeys.map((i: Buffer) => (i.toString()))
+  const innerInstructions = info.meta.innerInstructions.map(inel=>({
+    ...inel,
+    instructions: inel.instructions.map(el=>({
+      ...el,
+      data: enc.encode(el.data)
+    }))
+  }))
 
-    if ([...(item.data as Buffer).values()][0] != 1) continue
+  for (const item of [...info.transaction.message.compiledInstructions, ...innerInstructions.map((i: any) => i.instructions).flat()]) {
+    console.log(item )
+    if (accounts[item.programIdIndex] !== programId) continue
+   // console.log([...(item.data as Buffer).values()])
+
+   //console.log([...(item.data as Buffer)])
+   // if ([...(item.data as Buffer).values()][0] != 1) continue
 
     const keyIndex = [...(item.accounts as Buffer).values()]
-
+    // console.log(keyIndex)
     const [baseMintAccount, quoteMintAccount, marketAccount] = await connectionSolanaHTTPS.getMultipleAccountsInfo([
       new solweb3.PublicKey(accounts[keyIndex[8]]),
       new solweb3.PublicKey(accounts[keyIndex[9]]),
@@ -137,9 +151,11 @@ async function callback(data: any) {
       marketEventQueue: marketInfo.eventQueue.toString(),
       lookupTableAccount: solweb3.PublicKey.default.toString()
     })
+
+    
+    console.log(formatData)
   }
 
-  console.log(formatData)
 
   return formatData
 }
