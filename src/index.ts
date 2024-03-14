@@ -1,4 +1,5 @@
 const RaydiumSwapClass = require('./RaydiumSwap.ts')
+const formatAMM = require('./v1demo/formatAmmKeysById.ts')
 const solweb3 = require('@solana/web3.js')
 const rayray = require("@raydium-io/raydium-sdk");
 const b58 = require("bs58");
@@ -73,14 +74,39 @@ const getConfirmation = async(signature) =>{
   return raydiumSwap.getConfirmation(signature);
 }
 
-const connectionSolanaHTTPS = new solweb3.Connection(process.env.RPC_URL, { commitment: 'confirmed' })
+function swapFlow1(data: any){
+  const { loadedAddresses, postTokenBalances, preTokenBalances } = data.meta;
+  for(let i=0;i<loadedAddresses.readonly.length;i++){
+    const loadedAddress = loadedAddresses.readonly[i].toString();
+    const solBefore = preTokenBalances.find(el=>el.owner==loadedAddress && el.mint==sol);
+    const solAfter = postTokenBalances.find(el=>el.owner==loadedAddress && el.mint==sol);
+    const tokenBefore = preTokenBalances.find(el=>el.owner==loadedAddress && el.mint!=sol);
+    const tokenAfter = postTokenBalances.find(el=>el.owner==loadedAddress && el.mint!=sol);
+    const solDiff = solAfter.uiTokenAmount.uiAmount - solBefore.uiTokenAmount.uiAmount;
+    const tokenDiff = tokenAfter.uiTokenAmount.uiAmount - tokenBefore.uiTokenAmount.uiAmount;
+    const token = tokenAfter.mint;
+    const price = solDiff/tokenDiff;
+    console.log(token+" "+price);
+  }
+}
 
+const connectionSolanaHTTPS = new solweb3.Connection(process.env.RPC_URL, { commitment: 'confirmed' })
+var stopFlag = false;
 async function callback(data: any) {
+  if(stopFlag) return;
+  try{
+    swapFlow1(data);
+    return 1;
+  }catch(ex){
+    console.log(ex)
+  }
+
+  /*
   const programId = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
   //if (!data.filters.includes('transactionsSubKey')) return undefined
 
   const info = data;
-  if (info.meta.err !== null) return undefined
+  if (info?.meta?.err !== null) return undefined
  
   const formatData: {
     slot: number, txid: string, poolInfos: typeof _ApiPoolInfoV4[]
@@ -89,7 +115,9 @@ async function callback(data: any) {
     txid: info.transaction.signatures[0],
     poolInfos: []
   }
-
+  stopFlag=true;
+  const formatAmm = await formatAMM.formatAmmKeysById("5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1",connectionSolanaHTTPS );
+  console.log(formatAmm)
    var enc = new TextEncoder(); // always utf-8
   // console.dir(data,{depth:null})
   const accounts = info.transaction.message.staticAccountKeys.map((i: Buffer) => (i.toString()))
@@ -100,16 +128,26 @@ async function callback(data: any) {
       data: enc.encode(el.data)
     }))
   }))
-
-  for (const item of [...info.transaction.message.compiledInstructions, ...innerInstructions.map((i: any) => i.instructions).flat()]) {
-    console.log(item )
-    if (accounts[item.programIdIndex] !== programId) continue
+ 
+  const [baseMintAccount, quoteMintAccount, marketAccount] = await connectionSolanaHTTPS.getMultipleAccountsInfo([
+    new solweb3.PublicKey("86rsBvtXwxiPUgtavUX2j7XhVDFuirPRzCfDfioUGwLT"),
+    
+  ])
+  console.log(baseMintAccount)
+  const baseMintInfo = _SPL_MINT_LAYOUT.decode(baseMintAccount.data)
+  console.dir(baseMintInfo, {depth:null})
+  if(1)process.exit(1)
+  const compiledInstructions = info.transaction.message.compiledInstructions;
+  
+  //for (const item of [...info.transaction.message.compiledInstructions, ...innerInstructions.map((i: any) => i.instructions).flat()]) {
+  for(const item of compiledInstructions){
+    if (accounts[item.programIdIndex] !== programId) continue;
    // console.log([...(item.data as Buffer).values()])
-
+ 
    //console.log([...(item.data as Buffer)])
    // if ([...(item.data as Buffer).values()][0] != 1) continue
 
-    const keyIndex = [...(item.accounts as Buffer).values()]
+    const keyIndex = item.accountKeyIndexes;
     // console.log(keyIndex)
     const [baseMintAccount, quoteMintAccount, marketAccount] = await connectionSolanaHTTPS.getMultipleAccountsInfo([
       new solweb3.PublicKey(accounts[keyIndex[8]]),
@@ -157,7 +195,7 @@ async function callback(data: any) {
   }
 
 
-  return formatData
+  return formatData*/
 }
 
 
