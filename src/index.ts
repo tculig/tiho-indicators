@@ -73,20 +73,29 @@ const getConfirmation = async(signature) =>{
   const raydiumSwap = new RaydiumSwapClass(RPC_URL, WALLET_PRIVATE_KEY)
   return raydiumSwap.getConfirmation(signature);
 }
-
+// 5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1
+// https://solscan.io/tx/pCMX7we6ENNha8EjX1mysJ78P3xxkTzjXTYr8dMSsViCwnCxrkoNG84SEdmX8wyZDEvh1hbBhZECfGgc3Liao5Q
 function swapFlow1(data: any){
   const { loadedAddresses, postTokenBalances, preTokenBalances } = data.meta;
   for(let i=0;i<loadedAddresses.readonly.length;i++){
     const loadedAddress = loadedAddresses.readonly[i].toString();
+    console.dir(loadedAddress,{depth:null})
     const solBefore = preTokenBalances.find(el=>el.owner==loadedAddress && el.mint==sol);
+    console.dir(solBefore,{depth:null})
     const solAfter = postTokenBalances.find(el=>el.owner==loadedAddress && el.mint==sol);
+    console.dir(solAfter,{depth:null})
     const tokenBefore = preTokenBalances.find(el=>el.owner==loadedAddress && el.mint!=sol);
+    console.dir(tokenBefore,{depth:null})
     const tokenAfter = postTokenBalances.find(el=>el.owner==loadedAddress && el.mint!=sol);
+    console.dir(tokenAfter,{depth:null})
+    if(solBefore==undefined || solAfter==undefined || tokenBefore==undefined || tokenAfter==undefined) return;
     const solDiff = solAfter.uiTokenAmount.uiAmount - solBefore.uiTokenAmount.uiAmount;
     const tokenDiff = tokenAfter.uiTokenAmount.uiAmount - tokenBefore.uiTokenAmount.uiAmount;
     const token = tokenAfter.mint;
     const price = solDiff/tokenDiff;
+    console.dir(data,{depth:null})
     console.log(token+" "+price);
+    process.exit(1);
   }
 }
 
@@ -94,12 +103,14 @@ const connectionSolanaHTTPS = new solweb3.Connection(process.env.RPC_URL, { comm
 var stopFlag = false;
 async function callback(data: any) {
   if(stopFlag) return;
+
   try{
     swapFlow1(data);
     return 1;
   }catch(ex){
     console.log(ex)
   }
+  stopFlag=true;
 
   /*
   const programId = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
