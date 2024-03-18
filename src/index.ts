@@ -9,11 +9,11 @@ dotenv.config()
 const { ApiPoolInfoV4:_ApiPoolInfoV4, MARKET_STATE_LAYOUT_V3:_MARKET_STATE_LAYOUT_V3, Market:_Market, SPL_MINT_LAYOUT:_SPL_MINT_LAYOUT }= rayray;
 const sol = 'So11111111111111111111111111111111111111112' // e.g. SOLANA mint address
 const raydiumBuyLocal = async (tokenAddress, amount, slippagePercentage) =>{
-  return swap(sol,tokenAddress, amount, slippagePercentage);
+  return swapLocal(sol,tokenAddress, amount, slippagePercentage);
 }
 
 const raydiumSellLocal = async (tokenAddress, amount, slippagePercentage) =>{
-  return swap(tokenAddress, sol, amount, slippagePercentage);
+  return swapLocal(tokenAddress, sol, amount, slippagePercentage);
 }
 const raydiumBuy = async (tokenAddress, amount, slippagePercentage) =>{
   return swap(sol,tokenAddress, amount, slippagePercentage);
@@ -35,10 +35,10 @@ const swapLocal = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePer
   //const tokenAAmount = 0.01 // e.g. 0.01 SOL -> B_TOKEN
 
   const raydiumSwap = new RaydiumSwapClass(RPC_URL, WALLET_PRIVATE_KEY)
-  console.log(`Raydium swap initialized`)
+  console.log(`Raydium swap initialized local`)
 
   // Trying to find pool info in the json we loaded earlier and by comparing baseMint and tokenBAddress
-  let poolInfo = raydiumSwap.findLocalPool(tokenAAddress)
+  let poolInfo = await raydiumSwap.findLocalPool(tokenBAddress)
 
   if(poolInfo==undefined) {
     console.log("POOL NOT FOUND!")

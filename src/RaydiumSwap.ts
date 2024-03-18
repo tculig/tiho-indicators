@@ -13,6 +13,7 @@ const { Wallet } = require('@project-serum/anchor')
 const base58 = require('bs58')
 const nodeFetch = require('node-fetch');
 const mysql = require("mysql2/promise");
+const ammkeys = require("./v1demo/formatAmmKeysById.ts");
 
 function sleep(ms) {
   return new Promise((resolve) => {
@@ -54,8 +55,11 @@ class RaydiumSwap {
       this.connectionSQL = await mysql.createConnection(this.connection_config);
     }
     let query = `SELECT * FROM swapData WHERE token='${token}' LIMIT 1`; //10am
+    console.log(query)
     const poolInfo = ((await this.connectionSQL.execute(query))[0] as any[]);
-    const poolData = formatAmmKeysById("AgFnRLUScRD2E4nWQxW73hdbSN7eKEUb2jHX7tx9YTYc",this.connection )
+    console.log(poolInfo)
+ 
+    const poolData = ammkeys.formatAmmKeysById("AgFnRLUScRD2E4nWQxW73hdbSN7eKEUb2jHX7tx9YTYc",this.connection )
     return poolData;
   /*  return {
       id: string

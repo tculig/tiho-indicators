@@ -9,17 +9,23 @@ exports.formatAmmKeysById = async function(id:any, _connection: any) {
   console.dir(account,{depth:null})
   if (account === null) throw new Error(' get id info error ');
   const info = LIQUIDITY_STATE_LAYOUT_V4.decode(account.data);
+  console.dir(info,{depth:null})
 
   const marketId = info.marketId;
   const marketAccount = await _connection.getAccountInfo(marketId);
+  console.dir(marketAccount,{depth:null})
   if (marketAccount === null) throw new Error(' get market info error');
   const marketInfo = MARKET_STATE_LAYOUT_V3.decode(marketAccount.data);
+  console.dir(marketInfo,{depth:null})
 
   const lpMint = info.lpMint;
   const lpMintAccount = await _connection.getAccountInfo(lpMint);
+
+  console.dir(lpMint,{depth:null})
   if (lpMintAccount === null) throw new Error(' get lp mint info error');
   const lpMintInfo = SPL_MINT_LAYOUT.decode(lpMintAccount.data);
-
+  console.dir(lpMintInfo,{depth:null})
+  return;
   return {
     id,
     baseMint: info.baseMint.toString(),
