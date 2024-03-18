@@ -77,40 +77,161 @@ const getConfirmation = async(signature) =>{
 // https://solscan.io/tx/pCMX7we6ENNha8EjX1mysJ78P3xxkTzjXTYr8dMSsViCwnCxrkoNG84SEdmX8wyZDEvh1hbBhZECfGgc3Liao5Q
 function swapFlow1(data: any){
   const { loadedAddresses, postTokenBalances, preTokenBalances } = data.meta;
-  for(let i=0;i<loadedAddresses.readonly.length;i++){
-    const loadedAddress = loadedAddresses.readonly[i].toString();
-    console.dir(loadedAddress,{depth:null})
+  //for(let i=0;i<loadedAddresses.readonly.length;i++){
+    const loadedAddress = "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1";
+   // console.dir(loadedAddress,{depth:null})
     const solBefore = preTokenBalances.find(el=>el.owner==loadedAddress && el.mint==sol);
-    console.dir(solBefore,{depth:null})
+   // console.dir(solBefore,{depth:null})
     const solAfter = postTokenBalances.find(el=>el.owner==loadedAddress && el.mint==sol);
-    console.dir(solAfter,{depth:null})
+    //console.dir(solAfter,{depth:null})
     const tokenBefore = preTokenBalances.find(el=>el.owner==loadedAddress && el.mint!=sol);
-    console.dir(tokenBefore,{depth:null})
+   // console.dir(tokenBefore,{depth:null})
     const tokenAfter = postTokenBalances.find(el=>el.owner==loadedAddress && el.mint!=sol);
-    console.dir(tokenAfter,{depth:null})
-    if(solBefore==undefined || solAfter==undefined || tokenBefore==undefined || tokenAfter==undefined) return;
+    //console.dir(tokenAfter,{depth:null})
+    if(solBefore==undefined || solAfter==undefined || tokenBefore==undefined || tokenAfter==undefined) {
+      console.log("--")
+      console.dir(data,{depth:null})
+      console.log("------------")
+      process.exit(1);
+      return undefined;
+    }
     const solDiff = solAfter.uiTokenAmount.uiAmount - solBefore.uiTokenAmount.uiAmount;
     const tokenDiff = tokenAfter.uiTokenAmount.uiAmount - tokenBefore.uiTokenAmount.uiAmount;
     const token = tokenAfter.mint;
-    const price = solDiff/tokenDiff;
-    console.dir(data,{depth:null})
-    console.log(token+" "+price);
-    process.exit(1);
-  }
+    const price = Math.abs(solDiff/tokenDiff);
+    //console.dir(data,{depth:null})
+    const buyorsell = solDiff<0?'buy':'sell';
+    console.log(buyorsell+" "+token+" "+price);
+    return [buyorsell, token, price, solDiff, tokenDiff]
+   // process.exit(1);
+  //}
+  return 
 }
 
 const connectionSolanaHTTPS = new solweb3.Connection(process.env.RPC_URL, { commitment: 'confirmed' })
-var stopFlag = false;
+
 async function callback(data: any) {
-  if(stopFlag) return;
+  const formatData: {
+    slot: number, signature: string, poolInfo: any, buyorsell?:'buy'|'sell', token?:string, price?:number, amountSol?:number, amountToken?: number
+  } = {
+    slot: data.slot,
+    signature: data.transaction.signatures[0],
+    poolInfo: [],
+    price: undefined,
+    token: undefined,
+    buyorsell: undefined,
+    amountSol: undefined,
+    amountToken: undefined,
+  }
+  let accountKeyIndexes :any;
+  let raydiumKeyArray: string[]=[];
+  if(data.version=="legacy"){
+    if(data.transaction.message.indexToProgramIds==undefined){
+      console.log("indexToProgramIds seems to be undefined")
+      process.exit(1);
+    }
+
+    const accounts = data.transaction.message.staticAccountKeys;
+    if(data.meta.loadedAddresses.writable){
+      accounts.push(...data.meta.loadedAddresses.writable)
+    }
+    if(data.meta.loadedAddresses.readonly){
+      accounts.push(...data.meta.loadedAddresses.readonly)
+    }
+    let raydiumProgramArray = data.transaction.message.instructions.map(el=>({
+      ...el,
+      programPublicKey : data.transaction.message.indexToProgramIds[el.programIdIndex].toString()
+    })).find(el=>el.programPublicKey=="675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8");  //raydium swap
+    if(raydiumProgramArray==undefined){
+      //console.dir(data.meta.innerInstructions.map(el=>el.instructions).flat(),{depth:null})
+      raydiumProgramArray = data.meta.innerInstructions.map(el=>el.instructions).flat().map(el=>({
+        ...el,
+        programPublicKey : accounts[el.programIdIndex].toString()
+      })).find(el=>el.programPublicKey=="675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"); 
+    }
+    if(raydiumProgramArray==undefined){
+      console.dir(data,{depth:null})
+      process.exit(1)
+    }
+    if(accountKeyIndexes==undefined){
+      console.log("accountKeyIndexes")
+      console.dir(data,{depth:null})
+      process.exit(1)
+    }
+
+    accountKeyIndexes = raydiumProgramArray.accounts;
+    raydiumKeyArray = accountKeyIndexes.map(el=>accounts[el]);
+  }
+  else if(data.version==0){
+    const accounts = data.transaction.message.staticAccountKeys;
+    if(data.meta.loadedAddresses.writable){
+      accounts.push(...data.meta.loadedAddresses.writable)
+    }
+    if(data.meta.loadedAddresses.readonly){
+      accounts.push(...data.meta.loadedAddresses.readonly)
+    }
+   // console.dir(accounts,{depth:null})
+    let raydiumProgramArray = data.transaction.message.compiledInstructions.map(el=>({
+      ...el,
+      programPublicKey : accounts[el.programIdIndex].toString()
+    })).find(el=>el.programPublicKey=="675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8");  //raydium swap
+    if(raydiumProgramArray) accountKeyIndexes = raydiumProgramArray.accountKeyIndexes;
+    if(raydiumProgramArray==undefined){
+     // console.dir(data.meta.innerInstructions.map(el=>el.instructions).flat(),{depth:null})
+      raydiumProgramArray = data.meta.innerInstructions.map(el=>el.instructions).flat().map(el=>({
+        ...el,
+        programPublicKey : accounts[el.programIdIndex].toString()
+      })).find(el=>el.programPublicKey=="675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"); 
+      accountKeyIndexes = raydiumProgramArray.accounts;
+    }
+    if(raydiumProgramArray==undefined){
+      console.dir(data,{depth:null})
+      process.exit(1)
+    }
+    if(accountKeyIndexes==undefined){
+      console.log("accountKeyIndexes")
+      console.dir(data,{depth:null})
+      process.exit(1)
+    }
+    
+   
+    raydiumKeyArray = accountKeyIndexes.map(el=>accounts[el]);
+  }
 
   try{
-    swapFlow1(data);
-    return 1;
+    const poolInfo = swapFlow1(data);
+    if(poolInfo==undefined) return null;
+    formatData.buyorsell = poolInfo[0];
+    formatData.token = poolInfo[1];
+    formatData.price = poolInfo[2];
+    formatData.amountSol = poolInfo[3];
+    formatData.amountToken = poolInfo[4];
+    formatData.poolInfo = {
+      TokenProgram : raydiumKeyArray[0],
+      AmmId : raydiumKeyArray[1],
+      AmmAuthority : raydiumKeyArray[2],
+      AmmOpenOrders : raydiumKeyArray[3],
+      AmmTargetOrders : raydiumKeyArray[4],
+      PoolCoinTokenAccount : raydiumKeyArray[5],
+      PoolPcTokenAccount : raydiumKeyArray[6],
+      SerumProgramId : raydiumKeyArray[7],
+      SerumMarket : raydiumKeyArray[8],
+      SerumBids : raydiumKeyArray[9],
+      SerumAsks : raydiumKeyArray[10],
+      SerumEventQueue : raydiumKeyArray[11],
+      SerumCoinVaultAccount : raydiumKeyArray[12],
+      SerumPcVaultAccount : raydiumKeyArray[13],
+      SerumVaultSigner : raydiumKeyArray[14],
+      UserSourceTokenAccount : raydiumKeyArray[15],
+      UserDestTokenAccount : raydiumKeyArray[16],
+      UserOwner : raydiumKeyArray[17],
+    }
+    return formatData;
   }catch(ex){
-    console.log(ex)
+    console.log(ex);
+    return undefined;
   }
-  stopFlag=true;
+
 
   /*
   const programId = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
@@ -119,13 +240,7 @@ async function callback(data: any) {
   const info = data;
   if (info?.meta?.err !== null) return undefined
  
-  const formatData: {
-    slot: number, txid: string, poolInfos: typeof _ApiPoolInfoV4[]
-  } = {
-    slot: info.slot,
-    txid: info.transaction.signatures[0],
-    poolInfos: []
-  }
+
   stopFlag=true;
   const formatAmm = await formatAMM.formatAmmKeysById("5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1",connectionSolanaHTTPS );
   console.log(formatAmm)
