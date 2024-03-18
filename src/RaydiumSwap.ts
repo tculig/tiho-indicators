@@ -13,6 +13,7 @@ const { Wallet } = require('@project-serum/anchor')
 const base58 = require('bs58')
 const nodeFetch = require('node-fetch');
 const mysql = require("mysql2/promise");
+
 function sleep(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -23,24 +24,69 @@ class RaydiumSwap {
   connection: typeof Connection
   wallet: typeof Wallet
   START_TIME : any;
+  connection_config = {
+    host: "localhost",
+    user: "root",
+    password: "",
+    database: `solanaray1`,
+    timezone: "+01:00",
+    multipleStatements: true,
+    dateStrings: ["DATE", "DATETIME"],
+    keepAliveInitialDelay: 10000,
+    enableKeepAlive: true
+} as typeof mysql.ConnectionOptions;
+ connectionSQL;
+
   constructor(RPC_URL: string, WALLET_PRIVATE_KEY: string) {
     this.connection = new Connection(RPC_URL, { commitment: 'confirmed', confirmTransactionInitialTimeout: 60 })
     this.wallet = new Wallet(Keypair.fromSecretKey(base58.decode(WALLET_PRIVATE_KEY)))
     this.START_TIME = new Date();
-    var connection_config = {
-      host: "localhost",
-      user: "root",
-      password: "",
-      //database: "bitfinexminutes",
-      database: `solanaray1`,
-      timezone: "+01:00",
-      multipleStatements: true,
-      dateStrings: ["DATE", "DATETIME"],
-      keepAliveInitialDelay: 10000,
-      enableKeepAlive: true
-  } as ConnectionOptions;
-  var connectionSQL = await mysql.createConnection(connection_config);
+   
+  
   }
+
+  async buyFromLocal(){
+
+  }
+
+  async findLocalPool(token){
+    if (this.connectionSQL == undefined){
+      this.connectionSQL = await mysql.createConnection(this.connection_config);
+    }
+    let query = `SELECT * FROM swapData WHERE token='${token}' LIMIT 1`; //10am
+    const poolInfo = ((await this.connectionSQL.execute(query))[0] as any[]);
+    const poolData = formatAmmKeysById("AgFnRLUScRD2E4nWQxW73hdbSN7eKEUb2jHX7tx9YTYc",this.connection )
+    return poolData;
+  /*  return {
+      id: string
+      baseMint: string
+      quoteMint: string
+      lpMint: string
+      baseDecimals: number
+      quoteDecimals: number
+      lpDecimals: number
+      version: 4
+      programId: string
+      authority: string
+      openOrders: string
+      targetOrders: string
+      baseVault: string
+      quoteVault: string
+      withdrawQueue: string
+      lpVault: string
+      marketVersion: 3
+      marketProgramId: string
+      marketId: string
+      marketAuthority: string
+      marketBaseVault: string
+      marketQuoteVault: string
+      marketBids: string
+      marketAsks: string
+      marketEventQueue: string
+      lookupTableAccount: string
+    };*/
+  }
+
 
   async loadPoolKeys() {
     const liquidityJsonResp = await nodeFetch('https://api.raydium.io/v2/sdk/liquidity/mainnet.json')

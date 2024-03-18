@@ -6,6 +6,7 @@ const solweb32 = require('@solana/web3.js')
 
 exports.formatAmmKeysById = async function(id:any, _connection: any) {
   const account = await _connection.getAccountInfo(new solweb32.PublicKey(id));
+  console.dir(account,{depth:null})
   if (account === null) throw new Error(' get id info error ');
   const info = LIQUIDITY_STATE_LAYOUT_V4.decode(account.data);
 

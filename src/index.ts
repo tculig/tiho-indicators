@@ -8,6 +8,13 @@ dotenv.config()
 
 const { ApiPoolInfoV4:_ApiPoolInfoV4, MARKET_STATE_LAYOUT_V3:_MARKET_STATE_LAYOUT_V3, Market:_Market, SPL_MINT_LAYOUT:_SPL_MINT_LAYOUT }= rayray;
 const sol = 'So11111111111111111111111111111111111111112' // e.g. SOLANA mint address
+const raydiumBuyLocal = async (tokenAddress, amount, slippagePercentage) =>{
+  return swap(sol,tokenAddress, amount, slippagePercentage);
+}
+
+const raydiumSellLocal = async (tokenAddress, amount, slippagePercentage) =>{
+  return swap(tokenAddress, sol, amount, slippagePercentage);
+}
 const raydiumBuy = async (tokenAddress, amount, slippagePercentage) =>{
   return swap(sol,tokenAddress, amount, slippagePercentage);
 }
@@ -19,6 +26,53 @@ let RPC_URL, WALLET_PRIVATE_KEY;
 const initialize = (rpc, wallet)=>{
   RPC_URL = rpc;
   WALLET_PRIVATE_KEY = wallet;
+}
+
+
+const swapLocal = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercentage) => {
+  const executeSwap = true // Change to true to execute swap
+  const useVersionedTransaction = true // Use versioned transaction
+  //const tokenAAmount = 0.01 // e.g. 0.01 SOL -> B_TOKEN
+
+  const raydiumSwap = new RaydiumSwapClass(RPC_URL, WALLET_PRIVATE_KEY)
+  console.log(`Raydium swap initialized`)
+
+  // Trying to find pool info in the json we loaded earlier and by comparing baseMint and tokenBAddress
+  let poolInfo = raydiumSwap.findLocalPool(tokenAAddress)
+
+  if(poolInfo==undefined) {
+    console.log("POOL NOT FOUND!")
+    return;
+  }
+
+  if(poolInfo){
+    const tx = await raydiumSwap.getSwapTransaction(
+      tokenBAddress,
+      tokenAAmount,
+      poolInfo,
+      1000000, // Max amount of lamports
+      useVersionedTransaction,
+      'in',
+      slippagePercentage
+    )
+    
+  if (executeSwap) {
+    const txid = useVersionedTransaction
+      ? await raydiumSwap.sendVersionedTransaction(tx as typeof solweb3.VersionedTransaction)
+      : await raydiumSwap.sendLegacyTransaction(tx as typeof solweb3.Transaction)
+     return txid;
+  } else {
+    const simRes = useVersionedTransaction
+      ? await raydiumSwap.simulateVersionedTransaction(tx as typeof solweb3.VersionedTransaction)
+      : await raydiumSwap.simulateLegacyTransaction(tx as typeof solweb3.Transaction)
+
+    console.log(simRes)
+  }
+  }else{
+    console.log(poolInfo)
+  }
+
+
 }
 const swap = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercentage) => {
   const executeSwap = true // Change to true to execute swap
@@ -68,6 +122,7 @@ const swap = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercenta
 
 
 }
+
 
 const getConfirmation = async(signature) =>{
   const raydiumSwap = new RaydiumSwapClass(RPC_URL, WALLET_PRIVATE_KEY)
@@ -383,5 +438,7 @@ module.exports = {
   raydiumBuy, 
   raydiumSell,
   getConfirmation,
-  callback
+  callback,
+  raydiumBuyLocal,
+  raydiumSellLocal,
 }
