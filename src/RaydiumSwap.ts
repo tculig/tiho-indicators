@@ -12,6 +12,7 @@ const { Liquidity,
 const { Wallet } = require('@project-serum/anchor')
 const base58 = require('bs58')
 const nodeFetch = require('node-fetch');
+const mysql = require("mysql2/promise");
 function sleep(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -26,6 +27,19 @@ class RaydiumSwap {
     this.connection = new Connection(RPC_URL, { commitment: 'confirmed', confirmTransactionInitialTimeout: 60 })
     this.wallet = new Wallet(Keypair.fromSecretKey(base58.decode(WALLET_PRIVATE_KEY)))
     this.START_TIME = new Date();
+    var connection_config = {
+      host: "localhost",
+      user: "root",
+      password: "",
+      //database: "bitfinexminutes",
+      database: `solanaray1`,
+      timezone: "+01:00",
+      multipleStatements: true,
+      dateStrings: ["DATE", "DATETIME"],
+      keepAliveInitialDelay: 10000,
+      enableKeepAlive: true
+  } as ConnectionOptions;
+  var connectionSQL = await mysql.createConnection(connection_config);
   }
 
   async loadPoolKeys() {

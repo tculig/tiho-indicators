@@ -89,10 +89,11 @@ function swapFlow1(data: any){
     const tokenAfter = postTokenBalances.find(el=>el.owner==loadedAddress && el.mint!=sol);
     //console.dir(tokenAfter,{depth:null})
     if(solBefore==undefined || solAfter==undefined || tokenBefore==undefined || tokenAfter==undefined) {
-      console.log("--")
+    /*  console.log("--")
       console.dir(data,{depth:null})
       console.log("------------")
-      process.exit(1);
+      process.exit(1);*/
+      console.log("Non SOL transaction")
       return undefined;
     }
     const solDiff = solAfter.uiTokenAmount.uiAmount - solBefore.uiTokenAmount.uiAmount;
@@ -111,6 +112,11 @@ function swapFlow1(data: any){
 const connectionSolanaHTTPS = new solweb3.Connection(process.env.RPC_URL, { commitment: 'confirmed' })
 
 async function callback(data: any) {
+  /*if(data.slot==undefined){
+    console.dir(data,{depth:null})
+    console.log("slot is null")
+    process.exit(1)
+  }*/
   const formatData: {
     slot: number, signature: string, poolInfo: any, buyorsell?:'buy'|'sell', token?:string, price?:number, amountSol?:number, amountToken?: number
   } = {
@@ -131,16 +137,24 @@ async function callback(data: any) {
       process.exit(1);
     }
 
-    const accounts = data.transaction.message.staticAccountKeys;
+    const accounts = data.transaction.message.accountKeys;
     if(data.meta.loadedAddresses.writable){
       accounts.push(...data.meta.loadedAddresses.writable)
     }
     if(data.meta.loadedAddresses.readonly){
       accounts.push(...data.meta.loadedAddresses.readonly)
     }
+    try{
+   /* for(let i=0;i<data.transaction.message.instructions.length;i++)  {
+      const element = data.transaction.message.instructions[i];
+      console.log(element)
+      console.log(element.programIdIndex)
+      console.log(data.transaction.message.indexToProgramIds.get(element.programIdIndex))
+      console.log(data.transaction.message.indexToProgramIds.get(element.programIdIndex).toString())
+    }*/
     let raydiumProgramArray = data.transaction.message.instructions.map(el=>({
       ...el,
-      programPublicKey : data.transaction.message.indexToProgramIds[el.programIdIndex].toString()
+      programPublicKey : data.transaction.message.indexToProgramIds.get(el.programIdIndex).toString()
     })).find(el=>el.programPublicKey=="675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8");  //raydium swap
     if(raydiumProgramArray==undefined){
       //console.dir(data.meta.innerInstructions.map(el=>el.instructions).flat(),{depth:null})
@@ -153,14 +167,21 @@ async function callback(data: any) {
       console.dir(data,{depth:null})
       process.exit(1)
     }
+    accountKeyIndexes = raydiumProgramArray.accounts;
+    
     if(accountKeyIndexes==undefined){
       console.log("accountKeyIndexes")
       console.dir(data,{depth:null})
       process.exit(1)
     }
 
-    accountKeyIndexes = raydiumProgramArray.accounts;
     raydiumKeyArray = accountKeyIndexes.map(el=>accounts[el]);
+  }catch(ex){
+    console.log(ex);
+    console.dir(data,{depth:null})
+    process.exit(1)
+  }
+   
   }
   else if(data.version==0){
     const accounts = data.transaction.message.staticAccountKeys;
@@ -206,26 +227,57 @@ async function callback(data: any) {
     formatData.price = poolInfo[2];
     formatData.amountSol = poolInfo[3];
     formatData.amountToken = poolInfo[4];
-    formatData.poolInfo = {
-      TokenProgram : raydiumKeyArray[0],
-      AmmId : raydiumKeyArray[1],
-      AmmAuthority : raydiumKeyArray[2],
-      AmmOpenOrders : raydiumKeyArray[3],
-      AmmTargetOrders : raydiumKeyArray[4],
-      PoolCoinTokenAccount : raydiumKeyArray[5],
-      PoolPcTokenAccount : raydiumKeyArray[6],
-      SerumProgramId : raydiumKeyArray[7],
-      SerumMarket : raydiumKeyArray[8],
-      SerumBids : raydiumKeyArray[9],
-      SerumAsks : raydiumKeyArray[10],
-      SerumEventQueue : raydiumKeyArray[11],
-      SerumCoinVaultAccount : raydiumKeyArray[12],
-      SerumPcVaultAccount : raydiumKeyArray[13],
-      SerumVaultSigner : raydiumKeyArray[14],
-      UserSourceTokenAccount : raydiumKeyArray[15],
-      UserDestTokenAccount : raydiumKeyArray[16],
-      UserOwner : raydiumKeyArray[17],
+    if(raydiumKeyArray.length==18){
+      formatData.poolInfo = {
+        TokenProgram : raydiumKeyArray[0],
+        AmmId : raydiumKeyArray[1],
+        AmmAuthority : raydiumKeyArray[2],
+        AmmOpenOrders : raydiumKeyArray[3],
+        AmmTargetOrders : raydiumKeyArray[4],
+        PoolCoinTokenAccount : raydiumKeyArray[5],
+        PoolPcTokenAccount : raydiumKeyArray[6],
+        SerumProgramId : raydiumKeyArray[7],
+        SerumMarket : raydiumKeyArray[8],
+        SerumBids : raydiumKeyArray[9],
+        SerumAsks : raydiumKeyArray[10],
+        SerumEventQueue : raydiumKeyArray[11],
+        SerumCoinVaultAccount : raydiumKeyArray[12],
+        SerumPcVaultAccount : raydiumKeyArray[13],
+        SerumVaultSigner : raydiumKeyArray[14],
+        UserSourceTokenAccount : raydiumKeyArray[15],
+        UserDestTokenAccount : raydiumKeyArray[16],
+        UserOwner : raydiumKeyArray[17],
+      }
+    }else  if(raydiumKeyArray.length==17){
+      formatData.poolInfo = {
+        TokenProgram : raydiumKeyArray[0],
+        AmmId : raydiumKeyArray[1],
+        AmmAuthority : raydiumKeyArray[2],
+        AmmOpenOrders : raydiumKeyArray[3],
+        PoolCoinTokenAccount : raydiumKeyArray[4],
+        PoolPcTokenAccount : raydiumKeyArray[5],
+        SerumProgramId : raydiumKeyArray[6],
+        SerumMarket : raydiumKeyArray[7],
+        SerumBids : raydiumKeyArray[8],
+        SerumAsks : raydiumKeyArray[9],
+        SerumEventQueue : raydiumKeyArray[10],
+        SerumCoinVaultAccount : raydiumKeyArray[11],
+        SerumPcVaultAccount : raydiumKeyArray[12],
+        SerumVaultSigner : raydiumKeyArray[13],
+        UserSourceTokenAccount : raydiumKeyArray[14],
+        UserDestTokenAccount : raydiumKeyArray[15],
+        UserOwner : raydiumKeyArray[16],
+      }
+    }else{
+      return null;
+      // add liquidity: https://solscan.io/tx/4VeUShCR2LAJzdgDLjT9W4ZzvfE2UH449dARf3veKkgKwEYGMjF8mmaXyoeJrKDa5WCFuDW3hex13GCqjfDkyKh5
+      // remove liquidity: https://solscan.io/tx/5roiJJgGy2NPxmVfQFGkr8jhyG8Efq5srEgmmhiwmARjxX9VL1oF8qTXfojbatZhKvfu8hbbY2p2FAQGB8cULfBd
+      console.log("raydiumKeyArray length unexpected size")
+      console.log(raydiumKeyArray)
+      console.dir(data,{depth:null})
+      process.exit(1)
     }
+   
     return formatData;
   }catch(ex){
     console.log(ex);
