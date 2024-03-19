@@ -38,19 +38,27 @@ const swapLocal = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePer
   console.log(`Raydium swap initialized local`)
 
   // Trying to find pool info in the json we loaded earlier and by comparing baseMint and tokenBAddress
-  let poolInfo = await raydiumSwap.findLocalPool(tokenBAddress)
-
-  if(poolInfo==undefined) {
+  let poolInfo = tokenAAddress==sol?await raydiumSwap.findLocalPool(tokenBAddress):await raydiumSwap.findLocalPool(tokenAAddress);
+  //console.dir(poolInfo,{depth:null})
+  /*let poolInfo2 = raydiumSwap.findPoolInfoForTokens(sol, "BNTHS5YDbJ5WHRJS3p9eeL8JQtt63M35RZZcDHAUPtKk")
+  if(!poolInfo2){
+      // Loading with pool keys from https://api.raydium.io/v2/sdk/liquidity/mainnet.json
+      await raydiumSwap.loadPoolKeys()
+      console.log(`Loaded pool keys`)
+  }
+  poolInfo2 = raydiumSwap.findPoolInfoForTokens(sol, "BNTHS5YDbJ5WHRJS3p9eeL8JQtt63M35RZZcDHAUPtKk")
+  if(poolInfo2==undefined) {
     console.log("POOL NOT FOUND!")
     return;
   }
-
+  console.dir(poolInfo2,{depth:null})
+  */
   if(poolInfo){
     const tx = await raydiumSwap.getSwapTransaction(
       tokenBAddress,
       tokenAAmount,
       poolInfo,
-      1000000, // Max amount of lamports
+      120000, // Max amount of lamports
       useVersionedTransaction,
       'in',
       slippagePercentage
@@ -164,7 +172,7 @@ function swapFlow1(data: any){
   return 
 }
 
-const connectionSolanaHTTPS = new solweb3.Connection(process.env.RPC_URL, { commitment: 'confirmed' })
+//const connectionSolanaHTTPS = new solweb3.Connection(process.env.RPC_URL, { commitment: 'confirmed' })
 
 async function callback(data: any) {
   /*if(data.slot==undefined){

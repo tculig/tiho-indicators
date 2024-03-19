@@ -6,52 +6,53 @@ const solweb32 = require('@solana/web3.js')
 
 exports.formatAmmKeysById = async function(id:any, _connection: any) {
   const account = await _connection.getAccountInfo(new solweb32.PublicKey(id));
-  console.dir(account,{depth:null})
+  //console.dir(account,{depth:null})
   if (account === null) throw new Error(' get id info error ');
   const info = LIQUIDITY_STATE_LAYOUT_V4.decode(account.data);
-  console.dir(info,{depth:null})
+ // console.dir(info,{depth:null})
 
   const marketId = info.marketId;
   const marketAccount = await _connection.getAccountInfo(marketId);
-  console.dir(marketAccount,{depth:null})
+
   if (marketAccount === null) throw new Error(' get market info error');
   const marketInfo = MARKET_STATE_LAYOUT_V3.decode(marketAccount.data);
-  console.dir(marketInfo,{depth:null})
+  //console.dir(marketInfo,{depth:null})
 
   const lpMint = info.lpMint;
   const lpMintAccount = await _connection.getAccountInfo(lpMint);
 
-  console.dir(lpMint,{depth:null})
+  //console.dir(lpMint,{depth:null})
   if (lpMintAccount === null) throw new Error(' get lp mint info error');
   const lpMintInfo = SPL_MINT_LAYOUT.decode(lpMintAccount.data);
-  console.dir(lpMintInfo,{depth:null})
-  return;
+  //console.dir(lpMintInfo,{depth:null})
+ // console.dir(Market.getAssociatedAuthority({ programId: info.marketProgramId, marketId: info.marketId }),{depth:null})
+
   return {
-    id,
-    baseMint: info.baseMint.toString(),
-    quoteMint: info.quoteMint.toString(),
-    lpMint: info.lpMint.toString(),
+    id:new solweb32.PublicKey(id),
+    baseMint: info.baseMint,
+    quoteMint: info.quoteMint,
+    lpMint: info.lpMint,
     baseDecimals: info.baseDecimal.toNumber(),
     quoteDecimals: info.quoteDecimal.toNumber(),
     lpDecimals: lpMintInfo.decimals,
     version: 4,
-    programId: account.owner.toString(),
-    authority: LLQDT.getAssociatedAuthority({ programId: account.owner }).publicKey.toString(),
-    openOrders: info.openOrders.toString(),
-    targetOrders: info.targetOrders.toString(),
-    baseVault: info.baseVault.toString(),
-    quoteVault: info.quoteVault.toString(),
-    withdrawQueue: info.withdrawQueue.toString(),
-    lpVault: info.lpVault.toString(),
-    marketVersion: 3,
-    marketProgramId: info.marketProgramId.toString(),
-    marketId: info.marketId.toString(),
-    marketAuthority: Market.getAssociatedAuthority({ programId: info.marketProgramId, marketId: info.marketId }).publicKey.toString(),
-    marketBaseVault: marketInfo.baseVault.toString(),
-    marketQuoteVault: marketInfo.quoteVault.toString(),
-    marketBids: marketInfo.bids.toString(),
-    marketAsks: marketInfo.asks.toString(),
-    marketEventQueue: marketInfo.eventQueue.toString(),
-    lookupTableAccount: solweb32.PublicKey.default.toString()
+    programId: account.owner,
+    authority: LLQDT.getAssociatedAuthority({ programId: account.owner }).publicKey,
+    openOrders: info.openOrders,
+    targetOrders: info.targetOrders,
+    baseVault: info.baseVault,
+    quoteVault: info.quoteVault,
+    withdrawQueue: info.withdrawQueue,
+    lpVault: info.lpVault,
+    marketVersion: 4,
+    marketProgramId: info.marketProgramId,
+    marketId: info.marketId,
+    marketAuthority: Market.getAssociatedAuthority({ programId: info.marketProgramId, marketId: info.marketId }).publicKey,
+    marketBaseVault: marketInfo.baseVault,
+    marketQuoteVault: marketInfo.quoteVault,
+    marketBids: marketInfo.bids,
+    marketAsks: marketInfo.asks,
+    marketEventQueue: marketInfo.eventQueue,
+    lookupTableAccount: solweb32.PublicKey.default
   };
 };

@@ -55,11 +55,10 @@ class RaydiumSwap {
       this.connectionSQL = await mysql.createConnection(this.connection_config);
     }
     let query = `SELECT * FROM swapData WHERE token='${token}' LIMIT 1`; //10am
-    console.log(query)
+  
     const poolInfo = ((await this.connectionSQL.execute(query))[0] as any[]);
-    console.log(poolInfo)
- 
-    const poolData = ammkeys.formatAmmKeysById("AgFnRLUScRD2E4nWQxW73hdbSN7eKEUb2jHX7tx9YTYc",this.connection )
+  
+    const poolData = ammkeys.formatAmmKeysById(poolInfo[0].AmmId,this.connection )
     return poolData;
   /*  return {
       id: string
@@ -102,6 +101,8 @@ class RaydiumSwap {
   }
 
   findPoolInfoForTokens(mintA: string, mintB: string) {
+    console.log(JSON.stringify(this.allPoolKeysJson).includes(mintB))
+
     const poolData = this.allPoolKeysJson.find(
       (i) => (i.baseMint === mintA && i.quoteMint === mintB) || (i.baseMint === mintB && i.quoteMint === mintA)
     )
@@ -243,7 +244,7 @@ class RaydiumSwap {
   async sendVersionedTransaction(tx: typeof VersionedTransaction) {
     console.log("SEDNING TX")
     const txid = await this.connection.sendTransaction(tx, {
-      skipPreflight: true,
+      skipPreflight: false,
       maxRetries: 5,
     })
     console.log(`https://solscan.io/tx/${txid}`)
