@@ -58,7 +58,7 @@ const swapLocal = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePer
       tokenBAddress,
       tokenAAmount,
       poolInfo,
-      120000, // Max amount of lamports
+      20000000, // Max amount of lamports
       useVersionedTransaction,
       'in',
       slippagePercentage
@@ -166,6 +166,7 @@ function swapFlow1(data: any){
     //console.dir(data,{depth:null})
     const buyorsell = solDiff<0?'buy':'sell';
     console.log(buyorsell+" "+token+" "+price);
+    if(price==0 || price==Infinity || isNaN(price)) return undefined;
     return [buyorsell, token, price, solDiff, tokenDiff]
    // process.exit(1);
   //}

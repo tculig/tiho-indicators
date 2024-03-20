@@ -244,7 +244,7 @@ class RaydiumSwap {
   async sendVersionedTransaction(tx: typeof VersionedTransaction) {
     console.log("SEDNING TX")
     const txid = await this.connection.sendTransaction(tx, {
-      skipPreflight: false,
+      skipPreflight: true,
       maxRetries: 5,
     })
     console.log(`https://solscan.io/tx/${txid}`)
