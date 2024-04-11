@@ -21,24 +21,24 @@ function sleep(ms) {
   });
 }
 class RaydiumSwap {
-  allPoolKeysJson: typeof LiquidityPoolJsonInfo[] = []
-  connection: typeof Connection
-  wallet: typeof Wallet
-  START_TIME : any;
+  allPoolKeysJson= []
+  connection
+  wallet
+  START_TIME;
   connection_config = {
     host: "localhost",
     user: "root",
     password: "",
-    database: `solanaray1`,
+    database: `dexscreener01`,
     timezone: "+01:00",
     multipleStatements: true,
     dateStrings: ["DATE", "DATETIME"],
     keepAliveInitialDelay: 10000,
     enableKeepAlive: true
-} as typeof mysql.ConnectionOptions;
+};
  connectionSQL;
 
-  constructor(RPC_URL: string, WALLET_PRIVATE_KEY: string) {
+  constructor(RPC_URL, WALLET_PRIVATE_KEY) {
     this.connection = new Connection(RPC_URL, { commitment: 'confirmed', confirmTransactionInitialTimeout: 60 })
     this.wallet = new Wallet(Keypair.fromSecretKey(base58.decode(WALLET_PRIVATE_KEY)))
     this.START_TIME = new Date();
@@ -56,7 +56,7 @@ class RaydiumSwap {
     }
     let query = `SELECT * FROM swapData WHERE token='${token}' LIMIT 1`; //10am
   
-    const poolInfo = ((await this.connectionSQL.execute(query))[0] as any[]);
+    const poolInfo = ((await this.connectionSQL.execute(query))[0]);
   
     const poolData = ammkeys.formatAmmKeysById(poolInfo[0].AmmId,this.connection )
     return poolData;
@@ -94,13 +94,13 @@ class RaydiumSwap {
   async loadPoolKeys() {
     const liquidityJsonResp = await nodeFetch('https://api.raydium.io/v2/sdk/liquidity/mainnet.json')
     if (!liquidityJsonResp.ok) return []
-    const liquidityJson = (await liquidityJsonResp.json()) as { official: any; unOfficial: any }
+    const liquidityJson = (await liquidityJsonResp.json())
     const allPoolKeysJson = [...(liquidityJson?.official ?? []), ...(liquidityJson?.unOfficial ?? [])]
 
     this.allPoolKeysJson = allPoolKeysJson
   }
 
-  findPoolInfoForTokens(mintA: string, mintB: string) {
+  findPoolInfoForTokens(mintA, mintB) {
     console.log(JSON.stringify(this.allPoolKeysJson).includes(mintB))
 
     const poolData = this.allPoolKeysJson.find(
@@ -109,7 +109,7 @@ class RaydiumSwap {
 
     if (!poolData) return null
 
-    return jsonInfo2PoolKeys(poolData) as typeof LiquidityPoolKeys
+    return jsonInfo2PoolKeys(poolData) 
   }
 
   async getOwnerTokenAccounts() {
@@ -125,15 +125,15 @@ class RaydiumSwap {
   }
 
   async getSwapTransaction(
-    toToken: string,
+    toToken,
     // fromToken: string,
-    amount: number,
-    poolKeys: typeof LiquidityPoolKeys,
-    maxLamports: number = 110000,
+    amount,
+    poolKeys,
+    maxLamports = 110000,
     useVersionedTransaction = true,
-    fixedSide: 'in' | 'out' = 'in',
-    slippagePercentage: number = 5
-  ): Promise<typeof Transaction | typeof VersionedTransaction> {
+    fixedSide = 'in',
+    slippagePercentage = 5
+  ) {
     const directionIn = poolKeys.quoteMint.toString() == toToken
     const { minAmountOut, amountIn } = await this.calcAmountOut(poolKeys, amount, directionIn, slippagePercentage)
 
@@ -187,7 +187,7 @@ class RaydiumSwap {
     return legacyTransaction
   }
 
-  async sendLegacyTransaction(tx: typeof Transaction) {
+  async sendLegacyTransaction(tx) {
     const txid = await this.connection.sendTransaction(tx, [this.wallet.payer], {
       skipPreflight: true,
       maxRetries: 2,
@@ -196,7 +196,7 @@ class RaydiumSwap {
     return txid
   }
 
-  async isBlockhashExpired(lastValidBlockHeight: number) {
+  async isBlockhashExpired(lastValidBlockHeight) {
     let currentBlockHeight = (await this.connection.getBlockHeight('finalized'));
     console.log('                           ');
     console.log('Current Block height:             ', currentBlockHeight);
@@ -241,7 +241,7 @@ class RaydiumSwap {
     }
   }
 
-  async sendVersionedTransaction(tx: typeof VersionedTransaction) {
+  async sendVersionedTransaction(tx) {
     console.log("SEDNING TX")
     const txid = await this.connection.sendTransaction(tx, {
       skipPreflight: true,
@@ -267,25 +267,25 @@ class RaydiumSwap {
    
   }
 
-  async sendAndConfirm(tx: typeof VersionedTransaction) {
+  async sendAndConfirm(tx) {
     const txid = await this.connection.sendAndConfirmRawTransaction(this.connection, tx, {
 
     })
   }
 
-  async simulateLegacyTransaction(tx: typeof Transaction) {
+  async simulateLegacyTransaction(tx) {
     const txid = await this.connection.simulateTransaction(tx, [this.wallet.payer])
 
     return txid
   }
 
-  async simulateVersionedTransaction(tx: typeof VersionedTransaction) {
+  async simulateVersionedTransaction(tx) {
     const txid = await this.connection.simulateTransaction(tx)
 
     return txid
   }
 
-  getTokenAccountByOwnerAndMint(mint: typeof PublicKey) {
+  getTokenAccountByOwnerAndMint(mint) {
     return {
       programId: TOKEN_PROGRAM_ID,
       pubkey: PublicKey.default,
@@ -293,10 +293,10 @@ class RaydiumSwap {
         mint: mint,
         amount: 0,
       },
-    } as unknown as typeof TokenAccount
+    } 
   }
 
-  async calcAmountOut(poolKeys: typeof LiquidityPoolKeys, rawAmountIn: number, swapInDirection: boolean, slippagePercentage: number) {
+  async calcAmountOut(poolKeys, rawAmountIn, swapInDirection, slippagePercentage) {
     const poolInfo = await Liquidity.fetchInfo({ connection: this.connection, poolKeys })
 
     let currencyInMint = poolKeys.baseMint
@@ -335,7 +335,7 @@ class RaydiumSwap {
     }
   }
 
-  async getConfirmation(tx: string) {
+  async getConfirmation(tx) {
     const result = await this.connection.getSignatureStatus(tx, {
       searchTransactionHistory: true,
     });

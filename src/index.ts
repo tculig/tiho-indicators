@@ -58,7 +58,7 @@ const swapLocal = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePer
       tokenBAddress,
       tokenAAmount,
       poolInfo,
-      20000000, // Max amount of lamports
+      110000000, // Max amount of lamports
       useVersionedTransaction,
       'in',
       slippagePercentage
@@ -66,13 +66,13 @@ const swapLocal = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePer
     
   if (executeSwap) {
     const txid = useVersionedTransaction
-      ? await raydiumSwap.sendVersionedTransaction(tx as typeof solweb3.VersionedTransaction)
-      : await raydiumSwap.sendLegacyTransaction(tx as typeof solweb3.Transaction)
+      ? await raydiumSwap.sendVersionedTransaction(tx)
+      : await raydiumSwap.sendLegacyTransaction(tx)
      return txid;
   } else {
     const simRes = useVersionedTransaction
-      ? await raydiumSwap.simulateVersionedTransaction(tx as typeof solweb3.VersionedTransaction)
-      : await raydiumSwap.simulateLegacyTransaction(tx as typeof solweb3.Transaction)
+      ? await raydiumSwap.simulateVersionedTransaction(tx)
+      : await raydiumSwap.simulateLegacyTransaction(tx)
 
     console.log(simRes)
   }
@@ -106,7 +106,7 @@ const swap = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercenta
       tokenBAddress,
       tokenAAmount,
       poolInfo,
-      1000000, // Max amount of lamports
+      11000000, // Max amount of lamports
       useVersionedTransaction,
       'in',
       slippagePercentage
@@ -114,13 +114,13 @@ const swap = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercenta
     
   if (executeSwap) {
     const txid = useVersionedTransaction
-      ? await raydiumSwap.sendVersionedTransaction(tx as typeof solweb3.VersionedTransaction)
-      : await raydiumSwap.sendLegacyTransaction(tx as typeof solweb3.Transaction)
+      ? await raydiumSwap.sendVersionedTransaction(tx)
+      : await raydiumSwap.sendLegacyTransaction(tx)
      return txid;
   } else {
     const simRes = useVersionedTransaction
-      ? await raydiumSwap.simulateVersionedTransaction(tx as typeof solweb3.VersionedTransaction)
-      : await raydiumSwap.simulateLegacyTransaction(tx as typeof solweb3.Transaction)
+      ? await raydiumSwap.simulateVersionedTransaction(tx)
+      : await raydiumSwap.simulateLegacyTransaction(tx)
 
     console.log(simRes)
   }
@@ -138,7 +138,7 @@ const getConfirmation = async(signature) =>{
 }
 // 5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1
 // https://solscan.io/tx/pCMX7we6ENNha8EjX1mysJ78P3xxkTzjXTYr8dMSsViCwnCxrkoNG84SEdmX8wyZDEvh1hbBhZECfGgc3Liao5Q
-function swapFlow1(data: any){
+function swapFlow1(data){
   const { loadedAddresses, postTokenBalances, preTokenBalances } = data.meta;
   //for(let i=0;i<loadedAddresses.readonly.length;i++){
     const loadedAddress = "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1";
@@ -175,15 +175,13 @@ function swapFlow1(data: any){
 
 //const connectionSolanaHTTPS = new solweb3.Connection(process.env.RPC_URL, { commitment: 'confirmed' })
 
-async function callback(data: any) {
+async function callback(data) {
   /*if(data.slot==undefined){
     console.dir(data,{depth:null})
     console.log("slot is null")
     process.exit(1)
   }*/
-  const formatData: {
-    slot: number, signature: string, poolInfo: any, buyorsell?:'buy'|'sell', token?:string, price?:number, amountSol?:number, amountToken?: number
-  } = {
+  const formatData = {
     slot: data.slot,
     signature: data.transaction.signatures[0],
     poolInfo: [],
@@ -193,8 +191,8 @@ async function callback(data: any) {
     amountSol: undefined,
     amountToken: undefined,
   }
-  let accountKeyIndexes :any;
-  let raydiumKeyArray: string[]=[];
+  let accountKeyIndexes;
+  let raydiumKeyArray;
   if(data.version=="legacy"){
     if(data.transaction.message.indexToProgramIds==undefined){
       console.log("indexToProgramIds seems to be undefined")

@@ -4,7 +4,7 @@ const { ApiPoolInfoV4, LIQUIDITY_STATE_LAYOUT_V4, MARKET_STATE_LAYOUT_V3, Market
 //const {PublicKey} = require ('@solana/web3.js');
 const solweb32 = require('@solana/web3.js')
 
-exports.formatAmmKeysById = async function(id:any, _connection: any) {
+exports.formatAmmKeysById = async function(id, _connection) {
   const account = await _connection.getAccountInfo(new solweb32.PublicKey(id));
   //console.dir(account,{depth:null})
   if (account === null) throw new Error(' get id info error ');
