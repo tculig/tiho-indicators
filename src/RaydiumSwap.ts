@@ -21,7 +21,7 @@ function sleep(ms) {
   });
 }
 class RaydiumSwap {
-  allPoolKeysJson= []
+  allPoolKeysJson
   connection
   wallet
   START_TIME;
@@ -42,7 +42,7 @@ class RaydiumSwap {
     this.connection = new Connection(RPC_URL, { commitment: 'confirmed', confirmTransactionInitialTimeout: 60 })
     this.wallet = new Wallet(Keypair.fromSecretKey(base58.decode(WALLET_PRIVATE_KEY)))
     this.START_TIME = new Date();
-   
+    this.allPoolKeysJson = [];
   
   }
 

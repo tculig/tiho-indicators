@@ -184,7 +184,7 @@ async function callback(data) {
   const formatData = {
     slot: data.slot,
     signature: data.transaction.signatures[0],
-    poolInfo: [],
+    poolInfo: {},
     price: undefined,
     token: undefined,
     buyorsell: undefined,
