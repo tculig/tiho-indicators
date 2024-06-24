@@ -58,7 +58,7 @@ const swapLocal = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePer
       tokenBAddress,
       tokenAAmount,
       poolInfo,
-      110000000, // Max amount of lamports
+      3000000, // Max amount of lamports
       useVersionedTransaction,
       'in',
       slippagePercentage
@@ -106,7 +106,7 @@ const swap = async (tokenAAddress, tokenBAddress, tokenAAmount, slippagePercenta
       tokenBAddress,
       tokenAAmount,
       poolInfo,
-      11000000, // Max amount of lamports
+      3000000, // Max amount of lamports
       useVersionedTransaction,
       'in',
       slippagePercentage
